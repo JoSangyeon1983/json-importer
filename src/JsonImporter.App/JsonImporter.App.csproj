@@ -5,12 +5,32 @@
     <TargetFramework>net9.0-windows</TargetFramework>
     <RootNamespace>JsonImporter.App</RootNamespace>
     <AssemblyName>JsonImporter</AssemblyName>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!--
+    퍼블리시 설정: `dotnet publish src/JsonImporter.App -o publish` 만으로
+    .NET 런타임이 필요 없는 단일 파일 exe(약 60MB)가 나오도록 고정합니다.
+    커맨드라인 플래그로 넘기던 것을 옮겨온 것이라, 플래그를 빠뜨려 산출물이
+    달라지는 일(네이티브 DLL이 exe 옆에 흩어지는 등)을 막습니다.
+
+    Condition: dotnet publish가 설정하는 _IsPublishing 으로 범위를 좁혔습니다.
+    RuntimeIdentifier/SelfContained를 무조건 켜면 평소 `dotnet build`까지
+    RID별 self-contained 빌드가 되어 느려지고 bin/ 경로가 바뀝니다.
+  -->
+  <PropertyGroup Condition="'$(_IsPublishing)' == 'true'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- 네이티브 DLL(wpfgfx_cor3 등)까지 exe 안에 넣어 산출물을 exe 하나로 유지합니다. -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!-- 압축: 약 120MB → 60MB. 첫 실행 시 압축 해제 비용이 조금 있습니다. -->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>

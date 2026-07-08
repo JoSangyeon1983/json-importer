@@ -23,14 +23,39 @@ JsonImporter의 원본이 된 **Unity 에디터 확장** (`OTAON.Editor.Data`).
 
 ## GetURL.gs
 
-스프레드시트에서 **TSV export URL을 자동 생성**하는 Google Apps Script.
-시트 확장 프로그램(Apps Script)에 붙여넣고 `WriteCombinedUrlWithRangeToC2()`를 실행하면,
+> **더 이상 사용하지 않습니다 (v1.1.0부터).** 브라우저 주소창의 URL을 그대로 붙여넣으면 됩니다.
+> 기록 목적으로만 남겨둡니다.
+
+스프레드시트에서 **TSV export URL을 자동 생성**하던 Google Apps Script.
+Apps Script에 붙여넣고 `WriteCombinedUrlWithRangeToC2()`를 실행하면,
 
 1. A열에서 `//`로 시작하지 않는 첫 행을 데이터 시작 행으로 잡고
-2. 그 행의 오른쪽 끝 열, A열 아래쪽 끝 행을 찾아 범위(`A5:C7` 등)를 계산한 뒤
-3. `https://docs.google.com/spreadsheets/d/<id>/export?format=tsv&gid=<gid>&range=<범위>` 형태로 조합해
+2. 그 행의 오른쪽 끝 열, A열 아래쪽 끝 행을 찾아 범위(`A5:C12` 등)를 계산한 뒤
+3. `.../export?format=tsv&gid=<gid>&range=<범위>` 형태로 조합해
 
 **B1 셀에** 써줍니다. (함수 이름은 `...ToC2`지만 실제 출력 위치는 B1입니다.)
 
-이렇게 만들어진 URL을 JsonImporter의 테이블 URL 칸에 붙여넣으면 됩니다.
-시트는 **'링크가 있는 모든 사용자'에게 공개(뷰어)** 상태여야 다운로드가 됩니다.
+### 왜 폐기했나 — `range=`가 데이터를 잘라먹었습니다
+
+`endCol`을 구하는 루프가 헤더 행을 왼쪽부터 훑다가 **첫 빈 칸에서 `break`** 합니다:
+
+```js
+for (let c = 0; c < data[startRow - 1].length; c++) {
+  if (data[startRow - 1][c] === '') break;   // ← 여기
+  endCol = c + 1;
+}
+```
+
+Localization 시트의 헤더는 `textId | //코멘트 | //UI 화면 | (빈칸) | ko | en` 이라
+D열의 빈 칸에서 멈춰 `range=A5:C12`가 생성되고, **실제 값인 `ko`/`en` 열이 아예 다운로드되지 않았습니다.**
+그 결과 변환 JSON은 값이 전부 빈 객체(`{"3_3_": {}, "3": {}}`)였습니다.
+
+지금은 툴이 그 역할을 대신하며, 더 정확합니다.
+
+| `GetURL.gs`의 역할 | 대체 위치 |
+|---|---|
+| `startRow` — 헤더 위 `//` 주석 행 건너뛰기 | `TsvConverter.FindHeaderRowIndex` |
+| `endCol` — 오른쪽 경계 | `TsvConverter.FilterCommentColumns` (빈 헤더 열만 건너뛰고, 뒤 열은 유지) |
+| export URL 조합 | `SheetUrlNormalizer.Normalize` |
+
+시트는 여전히 **'링크가 있는 모든 사용자'에게 공개(뷰어)** 상태여야 다운로드가 됩니다.

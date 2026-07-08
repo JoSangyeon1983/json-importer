@@ -32,8 +32,13 @@ public sealed class ImportService
 
         try
         {
-            log?.Invoke($"Downloading: {entry.Name} from {entry.Url}");
-            var download = await _downloader.DownloadAsync(entry.Url, cancellationToken).ConfigureAwait(false);
+            // 브라우저 주소창의 /edit URL을 붙여넣어도 되도록 export URL로 바꿔줍니다.
+            var requestUrl = SheetUrlNormalizer.Normalize(entry.Url);
+            if (!string.Equals(requestUrl, entry.Url.Trim(), StringComparison.Ordinal))
+                log?.Invoke($"URL 정규화: {requestUrl}");
+
+            log?.Invoke($"Downloading: {entry.Name} from {requestUrl}");
+            var download = await _downloader.DownloadAsync(requestUrl, cancellationToken).ConfigureAwait(false);
             var tsv = download.Text;
 
             if (string.IsNullOrWhiteSpace(tsv))

@@ -7,6 +7,12 @@ namespace JsonImporter.Core.Services;
 /// 첫 번째 유효 컬럼을 key로 사용하고, <c>//</c> 로 시작하는 주석 컬럼/행은 건너뜁니다.
 /// (원본 <c>DataImporter.TsvConverter</c>에서 CSV 출력 로직을 제거한 이식본)
 /// </summary>
+/// <remarks>
+/// 헤더는 첫 줄로 고정되지 않고, <c>//</c> 로 시작하지 않는 첫 번째 비어있지 않은 행을 헤더로 봅니다.
+/// 덕분에 시트 상단의 주석 행을 <c>range=</c> 지정 없이 건너뛸 수 있습니다.
+/// 이 규칙의 전제는 <b>첫 번째 열이 주석 열이 아니라는 것</b>입니다
+/// (주석 행 판별과 동일한 전제이며, 첫 열은 key 컬럼으로 쓰입니다).
+/// </remarks>
 public static class TsvConverter
 {
     private const string CommentPrefix = "//";
@@ -23,12 +29,21 @@ public static class TsvConverter
             return "{}";
         }
 
-        var headerCells = SplitTsvLine(lines[0]);
+        var headerIndex = FindHeaderRowIndex(lines, log);
+        if (headerIndex < 0)
+        {
+            log?.Invoke("No header row in TSV (all rows are comments or blank)");
+            return "{}";
+        }
+
+        var headerCells = SplitTsvLine(lines[headerIndex]);
         if (headerCells.Count == 0)
         {
             log?.Invoke("No header cells in TSV");
             return "{}";
         }
+
+        log?.Invoke($"Header row: line {headerIndex + 1}");
 
         log?.Invoke($"Header: {string.Join(" | ", headerCells)}");
 
@@ -42,11 +57,40 @@ public static class TsvConverter
 
         log?.Invoke($"Using '{includeKeys[0]}' as primary key column");
 
-        var table = ParseDataRows(lines, includeIndices, includeKeys, log);
+        var table = ParseDataRows(lines, headerIndex, includeIndices, includeKeys, log);
 
         log?.Invoke($"Parsed {table.Count} entries");
 
         return KeyedJsonSerializer.Serialize(table);
+    }
+
+    /// <summary>
+    /// 헤더 행의 인덱스를 찾습니다: <c>//</c> 주석 행도, 완전히 빈 행도 아닌 첫 번째 행.
+    /// 찾지 못하면 -1을 반환합니다.
+    /// </summary>
+    private static int FindHeaderRowIndex(List<string> lines, Action<string>? log)
+    {
+        for (int i = 0; i < lines.Count; i++)
+        {
+            var cells = SplitTsvLine(lines[i]);
+            var firstCell = cells.Count > 0 ? (cells[0]?.Trim() ?? string.Empty) : string.Empty;
+
+            if (firstCell.StartsWith(CommentPrefix, StringComparison.Ordinal))
+            {
+                log?.Invoke($"Skipping comment row above header at line {i + 1}");
+                continue;
+            }
+
+            if (cells.All(string.IsNullOrWhiteSpace))
+            {
+                log?.Invoke($"Skipping blank row above header at line {i + 1}");
+                continue;
+            }
+
+            return i;
+        }
+
+        return -1;
     }
 
     private static (List<int> indices, List<string> keys) FilterCommentColumns(
@@ -82,13 +126,14 @@ public static class TsvConverter
 
     private static Dictionary<string, Dictionary<string, object>> ParseDataRows(
         List<string> lines,
+        int headerIndex,
         List<int> includeIndices,
         List<string> includeKeys,
         Action<string>? log)
     {
         var table = new Dictionary<string, Dictionary<string, object>>(StringComparer.Ordinal);
 
-        for (int lineIndex = 1; lineIndex < lines.Count; lineIndex++)
+        for (int lineIndex = headerIndex + 1; lineIndex < lines.Count; lineIndex++)
         {
             var rowCells = SplitTsvLine(lines[lineIndex]);
             if (rowCells.Count == 0)
