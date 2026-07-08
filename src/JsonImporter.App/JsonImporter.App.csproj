@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <RootNamespace>JsonImporter.App</RootNamespace>
+    <AssemblyName>JsonImporter</AssemblyName>
+    <Version>1.0.0</Version>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JsonImporter.Core\JsonImporter.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 창 제목표시줄/작업표시줄 아이콘(Window Icon)에서 런타임에 참조하기 위해 리소스로 포함 -->
+    <Resource Include="icon.ico" />
+  </ItemGroup>
+
+</Project>
