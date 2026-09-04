@@ -5,21 +5,21 @@
 
 ## DataImporter.cs
 
-JsonImporter의 원본이 된 **Unity 에디터 확장** (`OTAON.Editor.Data`).
+JsonConverter의 원본이 된 **Unity 에디터 확장** (`OTAON.Editor.Data`).
 `Tools/Data Import` 메뉴에서 Google Sheets TSV를 받아 JSON·CSV로 변환하던 도구입니다.
 
 이식하면서 달라진 점:
 
-| 항목 | 원본 | JsonImporter |
+| 항목 | 원본 | JsonConverter |
 |---|---|---|
 | 대상 테이블 | 고정 `enum DataTable` | UI에서 동적으로 추가/삭제 |
-| 설정 저장 | Unity `EditorPrefs` | `%AppData%/JsonImporter/settings.json` |
+| 설정 저장 | Unity `EditorPrefs` | `%AppData%/JsonConverter/settings.json` |
 | 다운로드 | 동기 `WebClient` | 비동기 `HttpClient` + 타임아웃 · HTML 응답 감지 |
 | 출력 | JSON + CSV | **JSON 전용** (CSV는 이식하지 않음) |
 | 출력 파일명 | enum 이름(소문자) | 시트(탭) 이름 자동 추출, 대소문자 유지 |
 
 변환 규칙(`//` 주석 컬럼·행 필터링, 첫 유효 컬럼을 key로 사용, bool/int/float 타입 추론)은
-`JsonImporter.Core`의 `TsvConverter` · `TypeInference` · `KeyedJsonSerializer`에 그대로 옮겨져 있습니다.
+`JsonConverter.Core`의 `TsvConverter` · `TypeInference` · `KeyedJsonSerializer`에 그대로 옮겨져 있습니다.
 
 ## GetURL.gs
 
